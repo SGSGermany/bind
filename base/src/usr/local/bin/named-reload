@@ -1,0 +1,44 @@
+#!/bin/bash
+# Bind
+# A container of ISC's BIND 9 DNS server.
+#
+# Copyright (c) 2022  SGS Serious Gaming & Simulations GmbH
+#
+# This work is licensed under the terms of the MIT license.
+# For a copy, see LICENSE file or <https://opensource.org/licenses/MIT>.
+#
+# SPDX-License-Identifier: MIT
+# License-Filename: LICENSE
+
+set -eu -o pipefail
+
+BIND_PID_FILE="/run/named/named.pid"
+
+if [ ! -e "$BIND_PID_FILE" ]; then
+    echo "BIND is apparently not running: PID file '$BIND_PID_FILE' not found" >&2
+    exit 2
+fi
+
+if [ ! -f "$BIND_PID_FILE" ]; then
+    echo "Unable to read PID file '$BIND_PID_FILE': Not a file" >&2
+    exit 1
+elif [ ! -r "$BIND_PID_FILE" ]; then
+    echo "Unable to read PID file '$BIND_PID_FILE': Permission denied" >&2
+    exit 1
+fi
+
+BIND_PID="$(cat "$BIND_PID_FILE")"
+
+if ! ps --pid "$BIND_PID" > /dev/null; then
+    echo "BIND is apparently not running: Process #$BIND_PID not found" >&2
+    exit 3
+fi
+
+BIND_PID_CMD="$(ps --no-headers --format comm --pid "$BIND_PID")"
+
+if [ "$BIND_PID_CMD" != "named" ]; then
+    echo "BIND is apparently not running: Process #$BIND_PID is not \`named\`, but \`$BIND_PID_CMD\`" >&2
+    exit 3
+fi
+
+kill -HUP "$BIND_PID"

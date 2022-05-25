@@ -1,0 +1,4 @@
+zone "localhost" IN {
+    type master;
+    file "/etc/named/default-zones/localhost.db";
+};

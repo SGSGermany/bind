@@ -1,0 +1,12 @@
+$TTL 1d
+
+@   IN  SOA     localhost. root.localhost. (
+                     0      ; Serial
+                    8H      ; Refresh
+                    2H      ; Retry
+                    1W      ; Expire
+                    1D )    ; NX (TTL Negative Cache)
+
+@   IN  NS      localhost.
+
+1.0.0.127.in-addr.arpa.     IN  PTR     localhost.

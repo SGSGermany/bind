@@ -1,0 +1,4 @@
+zone "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa" {
+    type master;
+    file "/etc/named/default-zones/localhost-ip6.db";
+};
