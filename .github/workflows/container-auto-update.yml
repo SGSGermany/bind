@@ -2,58 +2,25 @@ name: Periodically rebuild & publish containers (auto update)
 
 on:
   schedule:
-    # run four times a day on 05:37 UTC, 11:37 UTC, 17:37 UTC and 23:37 UTC
-    - cron: '37 5,11,17,23 * * *'
+    # run once a day at 22:20 UTC
+    - cron: '20 22 * * *'
 
 concurrency: build
 
 env:
-  GIT_REMOTE_URL: ${{ github.server_url }}/${{ github.repository }}.git
   CI_TOOLS_SETUP: https://raw.githubusercontent.com/SGSGermany/ci-tools/main/setup.sh
 
 jobs:
-  generate-jobs:
-    name: Generate jobs
-
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    outputs:
-      BUILD_MATRIX: ${{ steps.generate-jobs.outputs.BUILD_MATRIX }}
-
-    env:
-      RUN_ON_BRANCHES: 'main'
-
-    steps:
-      - name: Setup CI tools
-        run: |
-          . <(curl -fsS -L "$CI_TOOLS_SETUP" | bash -s ~/ci-tools)
-          echo "CI_TOOLS_PATH=$CI_TOOLS_PATH" | tee -a "$GITHUB_ENV"
-
-      - name: Generate jobs
-        id: generate-jobs
-        run: |
-          BUILD_REF="$("$CI_TOOLS_PATH/containers/generate-scheduled-jobs.sh")"
-          
-          echo ::group::Jobs list
-          echo "$BUILD_REF"
-          echo ::endgroup::
-          
-          echo "::set-output name=BUILD_MATRIX::$(echo "$BUILD_REF" | jq -R . | jq -c -s '{"BUILD_REF": .}')"
-
   build:
-    name: Build & publish container
-
-    needs: generate-jobs
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     strategy:
-      matrix: ${{ fromJSON(needs.generate-jobs.outputs.BUILD_MATRIX) }}
+      matrix:
+        BUILD_REF:
+          - refs/heads/main
       fail-fast: false
       max-parallel: 1
 
@@ -67,6 +34,7 @@ jobs:
       - name: Setup CI tools
         run: |
           . <(curl -fsS -L "$CI_TOOLS_SETUP" | bash -s ~/ci-tools)
+          echo "CI_TOOLS=$CI_TOOLS" | tee -a "$GITHUB_ENV"
           echo "CI_TOOLS_PATH=$CI_TOOLS_PATH" | tee -a "$GITHUB_ENV"
 
       - name: Checkout repository
@@ -83,14 +51,14 @@ jobs:
 
       - name: Generate container image tags
         run: |
-          source <(./tags.sh)
+          source <(./tags.sh "$GITHUB_RUN_ID.$GITHUB_RUN_NUMBER")
           echo "VERSION=$VERSION" | tee -a "$GITHUB_ENV"
           echo "DEFAULT_TAGS=${DEFAULT_TAGS:-latest-default}" | tee -a "$GITHUB_ENV"
           echo "BASE_TAGS=${BASE_TAGS:-latest}" | tee -a "$GITHUB_ENV"
 
       - name: Check for updates
         run: |
-          BUILD_ACTION="$(TAGS="$DEFAULT_TAGS" "$CI_TOOLS_PATH/containers/check-for-updates.sh")"
+          BUILD_ACTION="$(./check-for-updates.sh)"
           echo "BUILD_ACTION=$BUILD_ACTION" | tee -a "$GITHUB_ENV"
 
       - name: Check for config changes

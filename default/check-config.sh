@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bind
-# A container of ISC's BIND 9 DNS server.
+# A container running ISC's BIND 9 DNS server.
 #
 # Copyright (c) 2022  SGS Serious Gaming & Simulations GmbH
 #
@@ -12,91 +12,51 @@
 
 set -eu -o pipefail
 export LC_ALL=C
-shopt -s nullglob
 
-cmd() {
-    echo + "$@" >&2
-    "$@"
-    return $?
-}
+[ -v CI_TOOLS ] && [ "$CI_TOOLS" == "SGSGermany" ] \
+    || { echo "Invalid build environment: Environment variable 'CI_TOOLS' not set or invalid" >&2; exit 1; }
 
-prepare_local_conf() {
-    if [ ! -d "$TEMP_DIR/raw/local/$(dirname "$2")" ]; then
-        echo + "mkdir \$TEMP_DIR/{raw,clean}/local/$(dirname "$2")" >&2
-        mkdir "$TEMP_DIR/raw/local/$(dirname "$2")" \
-            "$TEMP_DIR/clean/local/$(dirname "$2")"
-    fi
+[ -v CI_TOOLS_PATH ] && [ -d "$CI_TOOLS_PATH" ] \
+    || { echo "Invalid build environment: Environment variable 'CI_TOOLS_PATH' not set or invalid" >&2; exit 1; }
 
-    echo + "cp ./base-conf/$1 \$TEMP_DIR/raw/local/$2" >&2
-    cp "$BUILD_DIR/base-conf/$1" "$TEMP_DIR/raw/local/$2"
+source "$CI_TOOLS_PATH/helper/common.sh.inc"
+source "$CI_TOOLS_PATH/helper/container.sh.inc"
+source "$CI_TOOLS_PATH/helper/container-archlinux.sh.inc"
 
-    echo + "clean_conf \$TEMP_DIR/raw/local/$2 \$TEMP_DIR/clean/local/$2" >&2
-    clean_conf "$TEMP_DIR/raw/local/$2" "$TEMP_DIR/clean/local/$2"
-}
-
-prepare_upstream_conf() {
-    if [ ! -d "$TEMP_DIR/raw/upstream/$(dirname "$2")" ]; then
-        echo + "mkdir \$TEMP_DIR/{raw,clean\/upstream/$(dirname "$2")" >&2
-        mkdir "$TEMP_DIR/raw/upstream/$(dirname "$2")" \
-            "$TEMP_DIR/clean/upstream/$(dirname "$2")"
-    fi
-
-    echo + "cp …/$1 \$TEMP_DIR/raw/upstream/$2" >&2
-    cp "$MOUNT/$1" "$TEMP_DIR/raw/upstream/$2"
-
-    echo + "clean_conf \$TEMP_DIR/raw/upstream/$2 \$TEMP_DIR/clean/upstream/$2" >&2
-    clean_conf "$TEMP_DIR/raw/upstream/$2" "$TEMP_DIR/clean/upstream/$2"
-}
-
-clean_conf() {
-    sed -e '/^\s*$/d' "$1" > "$2"
-}
+source "$CI_TOOLS_PATH/helper/chkconf.sh.inc"
 
 BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-[ -f "$BUILD_DIR/../container.env" ] && source "$BUILD_DIR/../container.env" \
-    || { echo "ERROR: Container environment not found" >&2; exit 1; }
+source "$BUILD_DIR/../container.env"
 
-if [ ! -d "$BUILD_DIR/base-conf" ]; then
-    echo "Base configuration directory not found" >&2
-    exit 1
-fi
+[ -d "$BUILD_DIR/base-conf" ] \
+    || { echo "Invalid base configuration directory '$BUILD_DIR/base-conf': No such directory" >&2; exit 1; }
 
-echo + "CONTAINER=\"\$(buildah from $BASE_IMAGE)\"" >&2
+echo + "CONTAINER=\"\$(buildah from $(quote "$BASE_IMAGE"))\"" >&2
 CONTAINER="$(buildah from "$BASE_IMAGE")"
 
-echo + "MOUNT=\"\$(buildah mount $CONTAINER)\"" >&2
+echo + "MOUNT=\"\$(buildah mount $(quote "$CONTAINER"))\"" >&2
 MOUNT="$(buildah mount "$CONTAINER")"
 
-cmd buildah run "$CONTAINER" -- \
-    pacman -S --noconfirm bind
+pkg_install "$CONTAINER" bind
 
-echo + "TEMP_DIR=\"\$(mktemp -d)\"" >&2
-TEMP_DIR="$(mktemp -d)"
+echo + "CHKCONF_DIR=\"\$(mktemp -d)\"" >&2
+CHKCONF_DIR="$(mktemp -d)"
 
-echo + "mkdir \$TEMP_DIR/{raw,clean}{,/{local,upstream}}" >&2
-mkdir \
-    "$TEMP_DIR/raw" "$TEMP_DIR/raw/local" "$TEMP_DIR/raw/upstream" \
-    "$TEMP_DIR/clean" "$TEMP_DIR/clean/local" "$TEMP_DIR/clean/upstream"
+chkconf_prepare --local "$BUILD_DIR/base-conf" "$CHKCONF_DIR" \
+    "named.conf" "named.conf" \
+    "127.0.0.zone" "127.0.0.zone" \
+    "localhost.zone" "localhost.zone" \
+    "localhost.ip6.zone" "localhost.ip6.zone"
 
-# BIND config
-prepare_local_conf "named.conf" "named.conf"
-for FILE in "$BUILD_DIR/base-conf/"*".zone"; do
-    prepare_local_conf "$(basename "$FILE")" "$(basename "$FILE")"
-done
+chkconf_prepare --upstream "$MOUNT" "$CHKCONF_DIR" \
+    "etc/named.conf" "named.conf" \
+    "var/named/127.0.0.zone" "127.0.0.zone" \
+    "var/named/localhost.zone" "localhost.zone" \
+    "var/named/localhost.ip6.zone" "localhost.ip6.zone"
 
-prepare_upstream_conf "etc/named.conf" "named.conf"
-for FILE in "$MOUNT/var/named/"*".zone"; do
-    prepare_upstream_conf "var/named/$(basename "$FILE")" "$(basename "$FILE")"
-done
+chkconf_diff "$CHKCONF_DIR"
 
-# diff configs
-echo + "diff -q -r \$TEMP_DIR/clean/local/ \$TEMP_DIR/clean/upstream/" >&2
-if ! diff -q -r "$TEMP_DIR/clean/local/" "$TEMP_DIR/clean/upstream/" > /dev/null; then
-    ( cd "$TEMP_DIR/raw" ; diff -u -r ./local/ ./upstream/ )
-    exit 1
-fi
-
-echo + "rm -rf \$TEMP_DIR" >&2
-rm -rf "$TEMP_DIR"
+echo + "rm -rf /tmp/…" >&2
+rm -rf "$CHKCONF_DIR"
 
 cmd buildah rm "$CONTAINER"

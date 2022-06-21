@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bind
-# A container of ISC's BIND 9 DNS server.
+# A container running ISC's BIND 9 DNS server.
 #
 # Copyright (c) 2022  SGS Serious Gaming & Simulations GmbH
 #
@@ -13,46 +13,64 @@
 set -eu -o pipefail
 export LC_ALL=C
 
-BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-[ -f "$BUILD_DIR/container.env" ] && source "$BUILD_DIR/container.env" \
-    || { echo "ERROR: Container environment not found" >&2; exit 1; }
+[ -v CI_TOOLS ] && [ "$CI_TOOLS" == "SGSGermany" ] \
+    || { echo "Invalid build environment: Environment variable 'CI_TOOLS' not set or invalid" >&2; exit 1; }
 
+[ -v CI_TOOLS_PATH ] && [ -d "$CI_TOOLS_PATH" ] \
+    || { echo "Invalid build environment: Environment variable 'CI_TOOLS_PATH' not set or invalid" >&2; exit 1; }
+
+source "$CI_TOOLS_PATH/helper/common.sh.inc"
+
+BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$BUILD_DIR/container.env"
+
+BUILD_INFO=""
+if [ $# -gt 0 ] && [[ "$1" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+    BUILD_INFO=".${1,,}"
+fi
+
+# pull base image
+echo + "IMAGE_ID=\"\$(podman pull $(quote "$BASE_IMAGE"))\"" >&2
 IMAGE_ID="$(podman pull "$BASE_IMAGE" || true)"
+
 if [ -z "$IMAGE_ID" ]; then
     echo "Failed to pull image '$BASE_IMAGE': No image with this tag found" >&2
     exit 1
 fi
 
-BIND_VERSION="$(podman run -i --rm "$IMAGE_ID" pacman -Syi bind \
-    | sed -ne 's/^Version\s*: \(.*\)$/\1/p')"
-if [ -z "$BIND_VERSION" ]; then
+# get version of package
+echo + "VERSION=\"\$(podman run -i --rm $(quote "$IMAGE_ID") pacman -Syi bind | sed -ne 's/^Version\s*: \(.*\)$/\1/p')\"" >&2
+VERSION="$(podman run -i --rm "$IMAGE_ID" pacman -Syi bind | sed -ne 's/^Version\s*: \(.*\)$/\1/p')"
+
+if [ -z "$VERSION" ]; then
     echo "Unable to read version of the 'bind' Pacman package: Package not found" >&2
     exit 1
-elif ! [[ "$BIND_VERSION" =~ ^([0-9]+:)?([0-9]+)\.([0-9]+)\.([0-9]+)([+~-]|$) ]]; then
-    echo "Unable to read version of the 'bind' Pacman package: '$BIND_VERSION' is no valid version" >&2
+elif ! [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([+~-]|$) ]]; then
+    echo "Unable to read version of the 'bind' Pacman package: '$VERSION' is no valid version" >&2
     exit 1
 fi
 
-BIND_VERSION="${BASH_REMATCH[2]}.${BASH_REMATCH[3]}.${BASH_REMATCH[4]}"
-BIND_VERSION_MINOR="${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
-BIND_VERSION_MAJOR="${BASH_REMATCH[2]}"
+VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+VERSION_MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+VERSION_MAJOR="${BASH_REMATCH[1]}"
 
-TAG_DATE="$(date -u +'%Y%m%d%H%M')"
+# build tags
+BUILD_INFO="$(date --utc +'%Y%m%d')$BUILD_INFO"
 
 DEFAULT_TAGS=(
-    "v$BIND_VERSION-default" "v$BIND_VERSION-default_$TAG_DATE"
-    "v$BIND_VERSION_MINOR-default" "v$BIND_VERSION_MINOR-default_$TAG_DATE"
-    "v$BIND_VERSION_MAJOR-default" "v$BIND_VERSION_MAJOR-default_$TAG_DATE"
+    "v$VERSION-default" "v$VERSION-default-$BUILD_INFO"
+    "v$VERSION_MINOR-default" "v$VERSION_MINOR-default-$BUILD_INFO"
+    "v$VERSION_MAJOR-default" "v$VERSION_MAJOR-default-$BUILD_INFO"
     "latest-default"
 )
 
 BASE_TAGS=(
-    "v$BIND_VERSION" "v${BIND_VERSION}_$TAG_DATE"
-    "v$BIND_VERSION_MINOR" "v${BIND_VERSION_MINOR}_$TAG_DATE"
-    "v$BIND_VERSION_MAJOR" "v${BIND_VERSION_MAJOR}_$TAG_DATE"
+    "v$VERSION" "v$VERSION-$BUILD_INFO"
+    "v$VERSION_MINOR" "v$VERSION_MINOR-$BUILD_INFO"
+    "v$VERSION_MAJOR" "v$VERSION_MAJOR-$BUILD_INFO"
     "latest"
 )
 
-printf 'VERSION="%s"\n' "$BIND_VERSION"
+printf 'VERSION="%s"\n' "$VERSION"
 printf 'DEFAULT_TAGS="%s"\n' "${DEFAULT_TAGS[*]}"
 printf 'BASE_TAGS="%s"\n' "${BASE_TAGS[*]}"

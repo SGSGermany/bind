@@ -1,6 +1,6 @@
 #!/bin/sh
 # Bind
-# A container of ISC's BIND 9 DNS server.
+# A container running ISC's BIND 9 DNS server.
 #
 # Copyright (c) 2022  SGS Serious Gaming & Simulations GmbH
 #
