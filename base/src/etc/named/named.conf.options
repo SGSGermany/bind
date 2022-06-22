@@ -18,6 +18,8 @@ options {
     version none;
     hostname none;
     server-id none;
+
+    minimal-responses no;
 };
 
 acl "trusted" {
