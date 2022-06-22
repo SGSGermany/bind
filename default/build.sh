@@ -51,7 +51,9 @@ rsync -v -rl --exclude '.gitignore' "$BUILD_DIR/src/" "$MOUNT/"
 user_changeuid "$CONTAINER" named 65536
 
 cmd buildah run "$CONTAINER" -- \
-    chown named:named "/var/named/"
+    chown named:named \
+        "/var/named/" \
+        "/run/named/"
 
 VERSION="$(pkg_version "$CONTAINER" bind)"
 
