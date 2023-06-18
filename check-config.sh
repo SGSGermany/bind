@@ -11,7 +11,7 @@
 # License-Filename: LICENSE
 
 set -eu -o pipefail
-export LC_ALL=C
+export LC_ALL=C.UTF-8
 
 [ -v CI_TOOLS ] && [ "$CI_TOOLS" == "SGSGermany" ] \
     || { echo "Invalid build environment: Environment variable 'CI_TOOLS' not set or invalid" >&2; exit 1; }
@@ -20,9 +20,9 @@ export LC_ALL=C
     || { echo "Invalid build environment: Environment variable 'CI_TOOLS_PATH' not set or invalid" >&2; exit 1; }
 
 source "$CI_TOOLS_PATH/helper/common.sh.inc"
+source "$CI_TOOLS_PATH/helper/common-traps.sh.inc"
 source "$CI_TOOLS_PATH/helper/container.sh.inc"
 source "$CI_TOOLS_PATH/helper/container-archlinux.sh.inc"
-
 source "$CI_TOOLS_PATH/helper/chkconf.sh.inc"
 
 BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -34,6 +34,8 @@ source "$BUILD_DIR/container.env"
 echo + "CONTAINER=\"\$(buildah from $(quote "$BASE_IMAGE"))\"" >&2
 CONTAINER="$(buildah from "$BASE_IMAGE")"
 
+trap_exit buildah rm "$CONTAINER"
+
 echo + "MOUNT=\"\$(buildah mount $(quote "$CONTAINER"))\"" >&2
 MOUNT="$(buildah mount "$CONTAINER")"
 
@@ -42,21 +44,22 @@ pkg_install "$CONTAINER" bind
 echo + "CHKCONF_DIR=\"\$(mktemp -d)\"" >&2
 CHKCONF_DIR="$(mktemp -d)"
 
-chkconf_prepare --local "$BUILD_DIR/base-conf" "$CHKCONF_DIR" \
+trap_exit rm -rf "$CHKCONF_DIR"
+
+chkconf_prepare \
+    --local "$BUILD_DIR/base-conf" "./base-conf" \
+    "$CHKCONF_DIR" "/tmp/…" \
     "named.conf" "named.conf" \
     "127.0.0.zone" "127.0.0.zone" \
     "localhost.zone" "localhost.zone" \
     "localhost.ip6.zone" "localhost.ip6.zone"
 
-chkconf_prepare --upstream "$MOUNT" "$CHKCONF_DIR" \
+chkconf_prepare \
+    --upstream "$MOUNT" "…" \
+    "$CHKCONF_DIR" "/tmp/…" \
     "etc/named.conf" "named.conf" \
     "var/named/127.0.0.zone" "127.0.0.zone" \
     "var/named/localhost.zone" "localhost.zone" \
     "var/named/localhost.ip6.zone" "localhost.ip6.zone"
 
-chkconf_diff "$CHKCONF_DIR"
-
-echo + "rm -rf /tmp/…" >&2
-rm -rf "$CHKCONF_DIR"
-
-cmd buildah rm "$CONTAINER"
+chkconf_diff "$CHKCONF_DIR" "/tmp/…"

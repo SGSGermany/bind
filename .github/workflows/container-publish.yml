@@ -10,6 +10,10 @@ concurrency: build
 env:
   CI_TOOLS_SETUP: https://raw.githubusercontent.com/SGSGermany/ci-tools/main/setup.sh
 
+defaults:
+  run:
+    shell: bash -eu -o pipefail {0}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,7 +47,7 @@ jobs:
         run: |
           source <(./tags.sh "$GITHUB_RUN_ID.$GITHUB_RUN_NUMBER")
           echo "VERSION=$VERSION" | tee -a "$GITHUB_ENV"
-          echo "TAGS=${TAGS:-latest}" | tee -a "$GITHUB_ENV"
+          echo "TAGS=$TAGS" | tee -a "$GITHUB_ENV"
 
       - name: Check for config changes
         run: |
@@ -53,11 +57,11 @@ jobs:
         run: |
           buildah unshare ./build.sh
 
-      - name: Metadata of container image
+      - name: Container image metadata
         run: |
-          podman image inspect "localhost/$IMAGE:latest"
+          podman image inspect "localhost/$IMAGE:${TAGS%% *}"
 
-      - name: Push 'base' container image
+      - name: Push container image
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ env.IMAGE }}
