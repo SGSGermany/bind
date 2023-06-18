@@ -23,32 +23,8 @@ if [ "$1" == "named" ]; then
         openssl dhparam -out "/etc/named/ssl/dhparams.pem" 2048
     fi
 
-    (
-        set -eu -o pipefail -- /etc/named/ssl/*/
-        if [ $# -eq 1 ] && [ "$1" == "/etc/named/ssl/*/" ] || [ $# -eq 0 ]; then
-            printf "%s skipping cert watchdog service\n" \
-                "$(LC_ALL=C date +'%d-%b-%Y %T.000')" >&2
-            exit 0
-        fi
-
-        printf "%s starting cert watchdog service\n" \
-            "$(LC_ALL=C date +'%d-%b-%Y %T.000')" >&2
-        inotifywait -e close_write,delete,move -m "$@" \
-            | while read -r DIRECTORY EVENTS FILENAME; do
-                printf "%s cert watchdog: receiving inotify event '%s' for '%s%s'\n" \
-                    "$(LC_ALL=C date +'%d-%b-%Y %T.000')" "$EVENTS" "$DIRECTORY" "$FILENAME" >&2
-
-                # wait till 300 sec (5 min) after the last event, new events reset the timer
-                while read -t 300 -r DIRECTORY EVENTS FILENAME; do
-                    printf "%s cert watchdog: receiving inotify event '%s' for '%s%s'\n" \
-                        "$(LC_ALL=C date +'%d-%b-%Y %T.000')" "$EVENTS" "$DIRECTORY" "$FILENAME" >&2
-                done
-
-                printf "%s cert watchdog: triggering configuration reload\n" \
-                    "$(LC_ALL=C date +'%d-%b-%Y %T.000')" >&2
-                named-reload
-            done
-    ) &
+    # start SSL certificate watchdog
+    named-cert-watchdog &
 
     # re-create /etc/named/named.conf.local-zones
     named-config-update

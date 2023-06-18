@@ -1,0 +1,39 @@
+#!/bin/bash
+# Bind
+# A container running ISC's BIND 9 DNS server.
+#
+# Copyright (c) 2022  SGS Serious Gaming & Simulations GmbH
+#
+# This work is licensed under the terms of the MIT license.
+# For a copy, see LICENSE file or <https://opensource.org/licenses/MIT>.
+#
+# SPDX-License-Identifier: MIT
+# License-Filename: LICENSE
+
+set -eu -o pipefail
+shopt -s nullglob
+
+log() {
+    printf "%s $1\n" "$(LC_ALL=C date +'%d-%b-%Y %T.000')" "${@:2}" >&2
+}
+
+set -- /etc/named/ssl/*/
+if [ $# -eq 0 ]; then
+    log "skipping cert watchdog service"
+    exit 0
+fi
+
+log "starting cert watchdog service"
+while read -r DIRECTORY EVENTS FILENAME; do
+    log "cert watchdog: receiving inotify event '%s' for '%s%s'" \
+        "$EVENTS" "$DIRECTORY" "$FILENAME" >&2
+
+    # wait till 300 sec (5 min) after the last event, new events reset the timer
+    while read -t 300 -r DIRECTORY EVENTS FILENAME; do
+        log "cert watchdog: receiving inotify event '%s' for '%s%s'" \
+            "$EVENTS" "$DIRECTORY" "$FILENAME" >&2
+    done
+
+    log "cert watchdog: triggering configuration reload"
+    named-reload
+done < <(inotifywait -e close_write,delete,move -m "$@")
