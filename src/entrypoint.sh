@@ -17,6 +17,7 @@ if [ $# -eq 0 ]; then
 fi
 
 if [ "$1" == "named" ]; then
+    # generate Diffie Hellman parameters, if necessary
     if [ ! -f "/etc/named/ssl/dhparams.pem" ]; then
         # generating Diffie Hellman parameters might take a few minutes...
         printf "%s generating Diffie Hellman parameters\n" "$(LC_ALL=C date +'%d-%b-%Y %T.000')" >&2
