@@ -43,39 +43,23 @@ jobs:
         run: |
           source <(./tags.sh "$GITHUB_RUN_ID.$GITHUB_RUN_NUMBER")
           echo "VERSION=$VERSION" | tee -a "$GITHUB_ENV"
-          echo "DEFAULT_TAGS=${DEFAULT_TAGS:-latest-default}" | tee -a "$GITHUB_ENV"
-          echo "BASE_TAGS=${BASE_TAGS:-latest}" | tee -a "$GITHUB_ENV"
+          echo "TAGS=${TAGS:-latest}" | tee -a "$GITHUB_ENV"
 
       - name: Check for config changes
         run: |
-          buildah unshare ./default/check-config.sh
+          buildah unshare ./check-config.sh
 
-      - name: Build 'default' container image
+      - name: Build container image
         run: |
-          buildah unshare ./default/build.sh
+          buildah unshare ./build.sh
 
-      - name: Metadata of 'default' container image
+      - name: Metadata of container image
         run: |
-          podman image inspect "$IMAGE:latest-default"
-
-      - name: Build 'base' container image
-        run: |
-          buildah unshare ./base/build.sh
-
-      - name: Metadata of 'base' container image
-        run: |
-          podman image inspect "$IMAGE:latest"
-
-      - name: Push 'default' container image
-        uses: redhat-actions/push-to-registry@v2
-        with:
-          image: ${{ env.IMAGE }}
-          registry: ${{ env.REGISTRY }}/${{ env.OWNER }}
-          tags: ${{ env.DEFAULT_TAGS }}
+          podman image inspect "localhost/$IMAGE:latest"
 
       - name: Push 'base' container image
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ env.IMAGE }}
           registry: ${{ env.REGISTRY }}/${{ env.OWNER }}
-          tags: ${{ env.BASE_TAGS }}
+          tags: ${{ env.TAGS }}

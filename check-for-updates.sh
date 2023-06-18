@@ -26,7 +26,7 @@ source "$CI_TOOLS_PATH/helper/chkupd-archlinux.sh.inc"
 BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$BUILD_DIR/container.env"
 
-TAG="${DEFAULT_TAGS%% *}"
+TAG="${TAGS%% *}"
 PACKAGES=( bind )
 
 # check whether the base image was updated

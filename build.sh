@@ -24,14 +24,14 @@ source "$CI_TOOLS_PATH/helper/container.sh.inc"
 source "$CI_TOOLS_PATH/helper/container-archlinux.sh.inc"
 
 BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-source "$BUILD_DIR/../container.env"
+source "$BUILD_DIR/container.env"
 
-readarray -t -d' ' TAGS < <(printf '%s' "$DEFAULT_TAGS")
+readarray -t -d' ' TAGS < <(printf '%s' "$TAGS")
 
 echo + "CONTAINER=\"\$(buildah from $(quote "$BASE_IMAGE"))\"" >&2
 CONTAINER="$(buildah from "$BASE_IMAGE")"
 
-echo + "MOUNT=\"\$(buildah mount $(quote "$CONTAINER"))\"" >&2
+echo + "MOUNT=\"\$(buildah mount $(quote "$CONTAINER")\"" >&2
 MOUNT="$(buildah mount "$CONTAINER")"
 
 pkg_install "$CONTAINER" \
@@ -45,10 +45,18 @@ rm -f "$MOUNT/var/named/127.0.0.zone" \
     "$MOUNT/var/named/localhost.ip6.zone" \
     "$MOUNT/var/named/localhost.zone"
 
+pkg_install "$CONTAINER" \
+    inotify-tools
+
 echo + "rsync -v -rl --exclude .gitignore ./src/ …/" >&2
 rsync -v -rl --exclude '.gitignore' "$BUILD_DIR/src/" "$MOUNT/"
 
 user_changeuid "$CONTAINER" named 65536
+
+user_add "$CONTAINER" ssl-certs 65537
+
+cmd buildah run "$CONTAINER" -- \
+    usermod -aG ssl-certs named
 
 cmd buildah run "$CONTAINER" -- \
     chown named:named \
@@ -62,15 +70,18 @@ cleanup "$CONTAINER"
 cmd buildah config \
     --port "53/udp" \
     --port "53/tcp" \
+    --port "853/tcp" \
     "$CONTAINER"
 
 cmd buildah config \
-    --volume "/etc/named" \
     --volume "/var/named" \
+    --volume "/etc/named/local-zones" \
+    --volume "/etc/named/ssl" \
     "$CONTAINER"
 
 cmd buildah config \
     --workingdir "/var/named" \
+    --entrypoint '[ "/entrypoint.sh" ]' \
     --cmd '[ "named", "-g", "-u", "named" ]' \
     "$CONTAINER"
 

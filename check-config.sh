@@ -26,7 +26,7 @@ source "$CI_TOOLS_PATH/helper/container-archlinux.sh.inc"
 source "$CI_TOOLS_PATH/helper/chkconf.sh.inc"
 
 BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-source "$BUILD_DIR/../container.env"
+source "$BUILD_DIR/container.env"
 
 [ -d "$BUILD_DIR/base-conf" ] \
     || { echo "Invalid base configuration directory '$BUILD_DIR/base-conf': No such directory" >&2; exit 1; }

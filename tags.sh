@@ -57,14 +57,7 @@ VERSION_MAJOR="${BASH_REMATCH[1]}"
 # build tags
 BUILD_INFO="$(date --utc +'%Y%m%d')$BUILD_INFO"
 
-DEFAULT_TAGS=(
-    "v$VERSION-default" "v$VERSION-default-$BUILD_INFO"
-    "v$VERSION_MINOR-default" "v$VERSION_MINOR-default-$BUILD_INFO"
-    "v$VERSION_MAJOR-default" "v$VERSION_MAJOR-default-$BUILD_INFO"
-    "latest-default"
-)
-
-BASE_TAGS=(
+TAGS=(
     "v$VERSION" "v$VERSION-$BUILD_INFO"
     "v$VERSION_MINOR" "v$VERSION_MINOR-$BUILD_INFO"
     "v$VERSION_MAJOR" "v$VERSION_MAJOR-$BUILD_INFO"
@@ -72,5 +65,4 @@ BASE_TAGS=(
 )
 
 printf 'VERSION="%s"\n' "$VERSION"
-printf 'DEFAULT_TAGS="%s"\n' "${DEFAULT_TAGS[*]}"
-printf 'BASE_TAGS="%s"\n' "${BASE_TAGS[*]}"
+printf 'TAGS="%s"\n' "${TAGS[*]}"
