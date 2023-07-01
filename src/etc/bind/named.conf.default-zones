@@ -1,0 +1,3 @@
+include "/etc/bind/default-zones/localhost.zone";
+include "/etc/bind/default-zones/localhost-ip4.zone";
+include "/etc/bind/default-zones/localhost-ip6.zone";

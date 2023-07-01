@@ -1,6 +1,6 @@
 options {
-    directory "/var/named";
-    pid-file "/run/named/named.pid";
+    directory "/var/bind";
+    pid-file "/var/run/named/named.pid";
 
     listen-on { any; };
     listen-on tls dns-over-tls { any; };
@@ -28,9 +28,9 @@ acl "trusted" {
 };
 
 tls "dns-over-tls" {
-    cert-file "/etc/named/ssl/dns-over-tls/fullchain.pem";
-    key-file "/etc/named/ssl/dns-over-tls/key.pem";
-    dhparam-file "/etc/named/ssl/dhparams.pem";
+    cert-file "/etc/bind/ssl/dns-over-tls/fullchain.pem";
+    key-file "/etc/bind/ssl/dns-over-tls/key.pem";
+    dhparam-file "/etc/bind/ssl/dhparams.pem";
 
     protocols { TLSv1.2; TLSv1.3; };
     ciphers "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256";

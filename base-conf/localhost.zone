@@ -1,11 +1,11 @@
-@                               1D IN SOA   localhost. root.localhost. (
-                                    42    ; serial (yyyymmdd##)
-                                    3H    ; refresh
-                                    15M   ; retry
-                                    1W    ; expiry
-                                    1D )  ; minimum ttl
+$TTL 1W
+@       IN      SOA     ns.localhost. root.localhost.  (
+                                      2002081601 ; Serial
+                                      28800      ; Refresh
+                                      14400      ; Retry
+                                      604800     ; Expire - 1 week
+                                      86400 )    ; Minimum
+@		IN      NS      ns
+ns		IN	A	127.0.0.1
 
-                                1D  IN  NS      localhost.
-
-localhost.                      1D  IN  A       127.0.0.1
-localhost.                      1D  IN  AAAA    ::1
+ns		IN	AAAA	::1

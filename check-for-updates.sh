@@ -21,7 +21,7 @@ export LC_ALL=C.UTF-8
 
 source "$CI_TOOLS_PATH/helper/common.sh.inc"
 source "$CI_TOOLS_PATH/helper/chkupd.sh.inc"
-source "$CI_TOOLS_PATH/helper/chkupd-archlinux.sh.inc"
+source "$CI_TOOLS_PATH/helper/chkupd-alpine.sh.inc"
 
 BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$BUILD_DIR/container.env"

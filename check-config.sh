@@ -22,8 +22,12 @@ export LC_ALL=C.UTF-8
 source "$CI_TOOLS_PATH/helper/common.sh.inc"
 source "$CI_TOOLS_PATH/helper/common-traps.sh.inc"
 source "$CI_TOOLS_PATH/helper/container.sh.inc"
-source "$CI_TOOLS_PATH/helper/container-archlinux.sh.inc"
+source "$CI_TOOLS_PATH/helper/container-alpine.sh.inc"
 source "$CI_TOOLS_PATH/helper/chkconf.sh.inc"
+
+chkconf_clean() {
+    sed -e 's|//|#|g' -e 's/^\([^#]*\)#.*$/\1/' -e '/^\s*$/d' "$1" > "$2"
+}
 
 BUILD_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$BUILD_DIR/container.env"
@@ -49,17 +53,17 @@ trap_exit rm -rf "$CHKCONF_DIR"
 chkconf_prepare \
     --local "$BUILD_DIR/base-conf" "./base-conf" \
     "$CHKCONF_DIR" "/tmp/…" \
-    "named.conf" "named.conf" \
-    "127.0.0.zone" "127.0.0.zone" \
+    "named.conf.authoritative" "named.conf.authoritative" \
+    "named.conf.recursive" "named.conf.recursive" \
     "localhost.zone" "localhost.zone" \
-    "localhost.ip6.zone" "localhost.ip6.zone"
+    "127.zone" "127.zone"
 
 chkconf_prepare \
     --upstream "$MOUNT" "…" \
     "$CHKCONF_DIR" "/tmp/…" \
-    "etc/named.conf" "named.conf" \
-    "var/named/127.0.0.zone" "127.0.0.zone" \
-    "var/named/localhost.zone" "localhost.zone" \
-    "var/named/localhost.ip6.zone" "localhost.ip6.zone"
+    "etc/bind/named.conf.authoritative" "named.conf.authoritative" \
+    "etc/bind/named.conf.recursive" "named.conf.recursive" \
+    "var/bind/pri/localhost.zone" "localhost.zone" \
+    "var/bind/pri/127.zone" "127.zone"
 
 chkconf_diff "$CHKCONF_DIR" "/tmp/…"

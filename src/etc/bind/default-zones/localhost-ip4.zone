@@ -1,0 +1,4 @@
+zone "0.0.127.in-addr.arpa" IN {
+    type master;
+    file "/etc/bind/default-zones/localhost-ip4.db";
+};

@@ -39,14 +39,19 @@ if [ -z "$IMAGE_ID" ]; then
 fi
 
 # get version of package
-echo + "VERSION=\"\$(podman run -i --rm $(quote "$IMAGE_ID") pacman -Syi bind | sed -ne 's/^Version\s*: \(.*\)$/\1/p')\"" >&2
-VERSION="$(podman run -i --rm "$IMAGE_ID" pacman -Syi bind | sed -ne 's/^Version\s*: \(.*\)$/\1/p')"
+echo + "VERSION=\"\$(podman run -i --rm $(quote "$IMAGE_ID")" \
+    "apk search --no-cache --exact bind" \
+    "| sed -ne 's/^bind-\(.*\)$/\1/p')\"" >&2
+
+VERSION="$(podman run -i --rm "$IMAGE_ID" \
+    apk search --no-cache --exact bind \
+    | sed -ne 's/^bind-\(.*\)$/\1/p')"
 
 if [ -z "$VERSION" ]; then
-    echo "Unable to read version of the 'bind' Pacman package: Package not found" >&2
+    echo "Unable to read version of the 'bind' Alpine package: Package not found" >&2
     exit 1
 elif ! [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([+~-]|$) ]]; then
-    echo "Unable to read version of the 'bind' Pacman package: '$VERSION' is no valid version" >&2
+    echo "Unable to read version of the 'bind' Alpine package: '$VERSION' is no valid version" >&2
     exit 1
 fi
 

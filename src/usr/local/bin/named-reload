@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Bind
 # A container running ISC's BIND 9 DNS server.
 #
@@ -12,14 +12,12 @@
 
 set -eu -o pipefail
 
-BIND_PID_FILE="/run/named/named.pid"
+BIND_PID_FILE="/var/run/named/named.pid"
 
 if [ ! -e "$BIND_PID_FILE" ]; then
     echo "BIND is apparently not running: PID file '$BIND_PID_FILE' not found" >&2
     exit 2
-fi
-
-if [ ! -f "$BIND_PID_FILE" ]; then
+elif [ ! -f "$BIND_PID_FILE" ]; then
     echo "Unable to read PID file '$BIND_PID_FILE': Not a file" >&2
     exit 1
 elif [ ! -r "$BIND_PID_FILE" ]; then
@@ -28,15 +26,16 @@ elif [ ! -r "$BIND_PID_FILE" ]; then
 fi
 
 BIND_PID="$(cat "$BIND_PID_FILE")"
-
-if ! ps --pid "$BIND_PID" > /dev/null; then
-    echo "BIND is apparently not running: Process #$BIND_PID not found" >&2
-    exit 3
+if [ "$(echo "$BIND_PID" | grep '^[1-9][0-9]*$')" != "$BIND_PID" ]; then
+    echo "Unable to read PID file '$BIND_PID_FILE': Invalid file format" >&2
+    exit 1
 fi
 
-BIND_PID_CMD="$(ps --no-headers --format comm --pid "$BIND_PID")"
-
-if [ "$BIND_PID_CMD" != "named" ]; then
+BIND_PID_CMD="$(ps -o pid=,comm= | sed -ne "s/^ *$BIND_PID \(.*\)$/\1/p")"
+if [ -z "$BIND_PID_CMD" ]; then
+    echo "BIND is apparently not running: Process #$BIND_PID not found" >&2
+    exit 3
+elif [ "$BIND_PID_CMD" != "named" ]; then
     echo "BIND is apparently not running: Process #$BIND_PID is not \`named\`, but \`$BIND_PID_CMD\`" >&2
     exit 3
 fi

@@ -17,11 +17,11 @@ log() {
     printf "%s $1\n" "$(LC_ALL=C date +'%d-%b-%Y %T.000')" "${@:2}" >&2
 }
 
-# create /etc/named/named.conf.local-zones
-log "updating configuration file '%s'" "/etc/named/named.conf.local-zones"
+# create /etc/bind/named.conf.local-zones
+log "updating configuration file '%s'" "/etc/bind/named.conf.local-zones"
 
 ZONE_FILES=()
-for ZONE_FILE in "/etc/named/local-zones/"*".zone"; do
+for ZONE_FILE in "/etc/bind/local-zones/"*".zone"; do
     ZONE="$(basename "$ZONE_FILE" ".zone")"
     if [[ "$ZONE" =~ ^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*$ ]] && [ "${#ZONE}" -le 255 ]; then
         ZONE_FILES+=( "$ZONE_FILE" )
@@ -33,24 +33,24 @@ for ZONE_FILE in "/etc/named/local-zones/"*".zone"; do
 done
 
 if [ "${#ZONE_FILES[@]}" -gt 0 ]; then
-    printf 'include "%s";\n' "${ZONE_FILES[@]}" > /etc/named/named.conf.local-zones
+    printf 'include "%s";\n' "${ZONE_FILES[@]}" > /etc/bind/named.conf.local-zones
 else
-    : > /etc/named/named.conf.local-zones
+    : > /etc/bind/named.conf.local-zones
 fi
 
-log "configuration file '%s' has been updated" "/etc/named/named.conf.local-zones"
+log "configuration file '%s' has been updated" "/etc/bind/named.conf.local-zones"
 
 # create databases of DDNS zones
-for ZONE in "/etc/named/local-zones/"*".ddns-db"; do
+for ZONE in "/etc/bind/local-zones/"*".ddns-db"; do
     ZONE="$(basename "$ZONE" ".ddns-db")"
-    if [ ! -e "/var/named/$ZONE.db" ]; then
-        log "creating database of DDNS zone '%s'" "/var/named/$ZONE.db"
-        cp "/etc/named/local-zones/$ZONE.ddns-db" "/var/named/$ZONE.db"
-        chown named:named "/var/named/$ZONE.db"
+    if [ ! -e "/var/bind/$ZONE.db" ]; then
+        log "creating database of DDNS zone '%s'" "/var/bind/$ZONE.db"
+        cp "/etc/bind/local-zones/$ZONE.ddns-db" "/var/bind/$ZONE.db"
+        chown named:named "/var/bind/$ZONE.db"
 
-        if [ -e "/var/named/$ZONE.db.jnl" ]; then
-            log "deleting dangling database journal of DDNS zone '%s'" "/var/named/$ZONE.db.jnl"
-            rm -f "/var/named/$ZONE.db.jnl"
+        if [ -e "/var/bind/$ZONE.db.jnl" ]; then
+            log "deleting dangling database journal of DDNS zone '%s'" "/var/bind/$ZONE.db.jnl"
+            rm -f "/var/bind/$ZONE.db.jnl"
         fi
     fi
 done
