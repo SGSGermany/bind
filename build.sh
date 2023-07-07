@@ -103,4 +103,4 @@ cmd buildah config \
     --annotation org.opencontainers.image.base.digest="$(podman image inspect --format '{{.Digest}}' "$BASE_IMAGE")" \
     "$CONTAINER"
 
-con_commit "$CONTAINER" "${TAGS[@]}"
+con_commit "$CONTAINER" "$IMAGE" "${TAGS[@]}"
