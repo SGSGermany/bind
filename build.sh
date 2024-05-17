@@ -81,7 +81,7 @@ cmd buildah config \
 
 cmd buildah config \
     --volume "/etc/bind/local-zones" \
-    --volume "/etc/bind/ssl" \
+    --volume "/etc/bind/ssl/dns-over-tls" \
     --volume "/var/bind" \
     "$CONTAINER"
 
