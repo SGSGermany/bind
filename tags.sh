@@ -55,6 +55,7 @@ elif ! [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([+~-]|$) ]]; then
     exit 1
 fi
 
+VERSION_FULL="$VERSION"
 VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
 VERSION_MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
 VERSION_MAJOR="${BASH_REMATCH[1]}"
@@ -69,5 +70,5 @@ TAGS=(
     "latest"
 )
 
-printf 'VERSION="%s"\n' "$VERSION"
+printf 'VERSION="%s"\n' "$VERSION_FULL"
 printf 'TAGS="%s"\n' "${TAGS[*]}"
