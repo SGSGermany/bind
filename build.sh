@@ -69,6 +69,8 @@ VERSION="$(pkg_version "$CONTAINER" bind)"
 
 cleanup "$CONTAINER"
 
+con_cleanup "$CONTAINER"
+
 cmd buildah config \
     --env BIND_VERSION="$VERSION" \
     "$CONTAINER"
@@ -101,6 +103,7 @@ cmd buildah config \
     --annotation org.opencontainers.image.licenses="MIT" \
     --annotation org.opencontainers.image.base.name="$BASE_IMAGE" \
     --annotation org.opencontainers.image.base.digest="$(podman image inspect --format '{{.Digest}}' "$BASE_IMAGE")" \
+    --annotation org.opencontainers.image.created="$(date -u +'%+4Y-%m-%dT%H:%M:%SZ')" \
     "$CONTAINER"
 
 con_commit "$CONTAINER" "$IMAGE" "${TAGS[@]}"
