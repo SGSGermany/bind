@@ -60,10 +60,10 @@ cmd buildah run "$CONTAINER" -- \
     addgroup named ssl-certs
 
 cmd buildah run "$CONTAINER" -- \
-    chown named:named "/var/bind/"
+    chown named:named "/var/bind/" "/run/named/"
 
 cmd buildah run "$CONTAINER" -- \
-    chmod 750 "/var/bind/"
+    chmod 750 "/var/bind/" "/run/named/"
 
 VERSION="$(pkg_version "$CONTAINER" bind)"
 

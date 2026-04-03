@@ -12,7 +12,7 @@
 
 set -eu -o pipefail
 
-BIND_PID_FILE="/var/run/named/named.pid"
+BIND_PID_FILE="/run/named/named.pid"
 
 if [ ! -e "$BIND_PID_FILE" ]; then
     echo "BIND is apparently not running: PID file '$BIND_PID_FILE' not found" >&2
